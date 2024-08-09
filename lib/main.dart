@@ -21,7 +21,7 @@ class PanggilApiDeckKartu extends StatefulWidget {
   _PanggilApiDeckKartuState createState() => _PanggilApiDeckKartuState(); // State untuk manajemen stateful widget
 }
 
-class _PanggilApiDeckKartuState extends State<PanggilApiDeckKartu> with SingleTickerProviderStateMixin {
+class _PanggilApiDeckKartuState extends State<PanggilApiDeckKartu> dengan SingleTickerProviderStateMixin {
   late Future<List<dynamic>> grabFutureKartu; // Buat nampung hasil future dari API
   List<dynamic> _cards = []; // List kartu yang bakal kita tampilkan
   late AnimationController _controller; // Controller buat animasi
@@ -35,13 +35,13 @@ class _PanggilApiDeckKartuState extends State<PanggilApiDeckKartu> with SingleTi
   @override
   void initState() {
     super.initState();
-    grabFutureKartu = getApiKartu(); // Panggil API saat initState
+    grabFutureKartu = ambilApiKartu(); // Panggil API saat initState
 
     // Setup animasi loading
     _controller = AnimationController(
-      duration: const Duration(seconds: 2), // Durasi animasi 2 detik
+      durasi: const Duration(seconds: 2), // Durasi animasi 2 detik
       vsync: this,
-    )..repeat(reverse: true); // Animasi bolak-balik biar smooth
+    )..ulang(reverse: true); // Animasi bolak-balik biar smooth
 
     _animation = CurvedAnimation(
       parent: _controller,
@@ -56,7 +56,7 @@ class _PanggilApiDeckKartuState extends State<PanggilApiDeckKartu> with SingleTi
   }
 
   // Fungsi asinkron buat ambil data dari API
-  Future<List<dynamic>> getApiKartu() async {
+  Future<List<dynamic>> ambilApiKartu() async {
     // Panggil API pakai http.get
     final hasilApiKartu = await http.get(
       Uri.parse('https://deckofcardsapi.com/api/deck/new/draw/?count=30'),
@@ -122,7 +122,7 @@ class _PanggilApiDeckKartuState extends State<PanggilApiDeckKartu> with SingleTi
                 );
               } else if (snapshot.hasError) {
                 return Center(child: Text('Error: ${snapshot.error}')); // Kalau error
-              } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              } else if (!snapshot.hasData atau snapshot.data!.isEmpty) {
                 return Center(child: Text('Tidak Ada Data yang terkirim')); // Kalau datanya kosong
               } else {
                 _cards = snapshot.data!; // Simpan data kartu dari API
@@ -162,17 +162,17 @@ class _PanggilApiDeckKartuState extends State<PanggilApiDeckKartu> with SingleTi
                                   children: [
                                     Image.network(
                                       card['image'], // Tampilkan gambar kartu
-                                      height: 128,
-                                      width: 128,
+                                      tinggi: 128,
+                                      lebar: 128,
                                     ),
                                     SizedBox(height: 8), // Spasi biar ga mepet
                                     Text(
                                       '${card['value']} of ${card['suit']}', // Nama kartu
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
-                                        fontSize: 16,
+                                        ukuranFont: 16,
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.white, // Ubah warna teks jadi putih
+                                        warna: Colors.white, // Ubah warna teks jadi putih
                                       ),
                                     ),
                                     SizedBox(height: 8), // Spasi lagi biar enak dilihat
@@ -195,7 +195,7 @@ class _PanggilApiDeckKartuState extends State<PanggilApiDeckKartu> with SingleTi
                                     });
                                   }
                                 : null, // Disable tombol kalo udah di halaman pertama
-                            child: Text('Previous'),
+                            child: Text('Sebelumnya'),
                           ),
                           SizedBox(width: 10), // Spasi antar tombol
                           ElevatedButton(
@@ -207,7 +207,7 @@ class _PanggilApiDeckKartuState extends State<PanggilApiDeckKartu> with SingleTi
                                     });
                                   }
                                 : null, // Disable tombol kalo udah di halaman terakhir
-                            child: Text('Next'),
+                            child: Text('Berikutnya'),
                           ),
                         ],
                       ),
