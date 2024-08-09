@@ -33,28 +33,28 @@ class _PanggilApiDeckKartuState extends State<PanggilApiDeckKartu> {
   @override
   void initState() {
     super.initState();
-    grabFutureKartu = getApiKartu();
+    grabFutureKartu = getApiKartu(); // Panggil API saat initState
   }
 
-  // Masukkan fungsi asinkron (operasi yang memerlukan waktu)
+  // Fungsi asinkron buat ambil data dari API
   Future<List<dynamic>> getApiKartu() async {
-    // Buat variabel untuk menampung hasil data menggunakan API
+    // Panggil API pakai http.get
     final hasilApiKartu = await http.get(
-      Uri.parse('https://deckofcardsapi.com/api/deck/new/draw/?count=12'),
+      Uri.parse('https://deckofcardsapi.com/api/deck/new/draw/?count=30'),
     );
 
     if (hasilApiKartu.statusCode == 200) {
       final data = json.decode(hasilApiKartu.body);
-      return data['cards'];
+      return data['cards']; // Balikin list kartu dari API
     } else {
       throw Exception('Gagal Mengambil Data!');
     }
   }
 
-  // Buat fungsi untuk melihat halaman kartu yang berbeda
+  // Fungsi buat update halaman yang ditampilkan
   void perbaruiKartuTampil(int page) {
     setState(() {
-      halamanUtamaTampil = page;
+      halamanUtamaTampil = page; // Ubah state halaman
     });
   }
 
@@ -62,15 +62,20 @@ class _PanggilApiDeckKartuState extends State<PanggilApiDeckKartu> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('UAS Flutter Materi Rest-API'),
-            Text(
-              'Mobile Programming - Universitas Nasional Jakarta',
-              style: TextStyle(fontSize: 14),
-            ),
-          ],
+        backgroundColor: Colors.transparent, // AppBar transparan
+        elevation: 0, // Hilangin bayangan AppBar
+        title: Opacity(
+          opacity: 0.8, // Opacity title AppBar
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('UAS Flutter Materi Rest-API'),
+              Text(
+                'Mobile Programming - Universitas Nasional Jakarta',
+                style: TextStyle(fontSize: 14),
+              ),
+            ],
+          ),
         ),
       ),
       body: Stack(
@@ -79,20 +84,20 @@ class _PanggilApiDeckKartuState extends State<PanggilApiDeckKartu> {
           Container(
             decoration: BoxDecoration(
               image: DecorationImage(
-                image: AssetImage('assets/bg.png'), // Ensure you have this image in your assets
+                image: AssetImage('assets/bg.png'), // Pastikan ada gambar ini di assets
                 fit: BoxFit.cover,
               ),
             ),
           ),
           FutureBuilder<List<dynamic>>(
-            future: grabFutureKartu,
+            future: grabFutureKartu, // Data yang ditunggu dari API
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CircularProgressIndicator());
+                return Center(child: CircularProgressIndicator()); // Loading
               } else if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
+                return Center(child: Text('Error: ${snapshot.error}')); // Kalau error
               } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return Center(child: Text('Tidak Ada Data yang terkirim'));
+                return Center(child: Text('Tidak Ada Data yang terkirim')); // Kalau datanya kosong
               } else {
                 _cards = snapshot.data!;
                 int startIndex =
@@ -107,41 +112,43 @@ class _PanggilApiDeckKartuState extends State<PanggilApiDeckKartu> {
                     children: [
                       Expanded(
                         child: GridView.builder(
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 4,
-                            childAspectRatio: 0.7,
-                            crossAxisSpacing: 20.0,
-                            mainAxisSpacing: 20.0,
+                          // Menggunakan GridView.builder biar fleksibel
+                          physics: BouncingScrollPhysics(), // Buat scrolling smooth
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 4, // Membagi menjadi 4 kolom
+                            childAspectRatio: 0.65, // Mengatur rasio agar kartu lebih panjang
+                            crossAxisSpacing: 20.0, // Jarak antar kartu
+                            mainAxisSpacing: 20.0, // Jarak antara baris kartu
                           ),
                           itemCount: currentPageCards.length,
                           itemBuilder: (context, index) {
                             final card = currentPageCards[index];
                             return Card(
-                              elevation: 2.0,
+                              elevation: 2.0, // Ketinggian bayangan kartu
+                              color: Colors.transparent, // Background kartu transparan
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color: Colors.blue[100],
-                                  borderRadius: BorderRadius.circular(10),
+                                  color: Colors.blue.withOpacity(0.3), // Warna semi-transparan
+                                  borderRadius: BorderRadius.circular(10), // Sudut membulat
                                 ),
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Image.network(
-                                      card['image'],
-                                      height: 128,
-                                      width: 128,
+                                      card['image'], // Tampilkan gambar kartu
+                                      height: 100, // Tinggi gambar
+                                      width: 100, // Lebar gambar
                                     ),
-                                    SizedBox(height: 8),
+                                    SizedBox(height: 8), // Spasi antara gambar dan teks
                                     Text(
-                                      '${card['value']} of ${card['suit']}',
+                                      '${card['value']} of ${card['suit']}', // Nama kartu
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14, // Ukuran teks
+                                        fontWeight: FontWeight.bold, // Teks tebal
                                       ),
                                     ),
-                                    SizedBox(height: 8),
+                                    SizedBox(height: 8), // Spasi bawah
                                   ],
                                 ),
                               ),
@@ -150,26 +157,32 @@ class _PanggilApiDeckKartuState extends State<PanggilApiDeckKartu> {
                         ),
                       ),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center, // Pusatkan tombol
                         children: [
-                          ElevatedButton(
-                            onPressed: halamanUtamaTampil > 1
-                                ? () {
-                                    perbaruiKartuTampil(
-                                        halamanUtamaTampil - 1);
-                                  }
-                                : null,
-                            child: Text('Previous'),
+                          Opacity(
+                            opacity: 0.8, // Opacity untuk tombol "Previous"
+                            child: ElevatedButton(
+                              onPressed: halamanUtamaTampil > 1
+                                  ? () {
+                                      perbaruiKartuTampil(
+                                          halamanUtamaTampil - 1); // Pindah ke halaman sebelumnya
+                                    }
+                                  : null,
+                              child: Text('Previous'), // Teks tombol
+                            ),
                           ),
-                          SizedBox(width: 10),
-                          ElevatedButton(
-                            onPressed: endIndex < _cards.length
-                                ? () {
-                                    perbaruiKartuTampil(
-                                        halamanUtamaTampil + 1);
-                                  }
-                                : null,
-                            child: Text('Next'),
+                          SizedBox(width: 10), // Spasi antara tombol
+                          Opacity(
+                            opacity: 0.8, // Opacity untuk tombol "Next"
+                            child: ElevatedButton(
+                              onPressed: endIndex < _cards.length
+                                  ? () {
+                                      perbaruiKartuTampil(
+                                          halamanUtamaTampil + 1); // Pindah ke halaman berikutnya
+                                    }
+                                  : null,
+                              child: Text('Next'), // Teks tombol
+                            ),
                           ),
                         ],
                       ),
@@ -182,18 +195,23 @@ class _PanggilApiDeckKartuState extends State<PanggilApiDeckKartu> {
         ],
       ),
       bottomNavigationBar: BottomAppBar(
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Add from dev:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              Text('Reference: https://course.lilidwianto.me'),
-              Text('WhatsApp: 384038490'),
-            ],
+        color: Colors.transparent, // BottomAppBar transparan
+        child: Container(
+          color: Colors.black.withOpacity(0.5), // Warna semi-transparan
+          padding: const EdgeInsets.all(8.0), // Padding kontainer
+          child: SingleChildScrollView( // Mengatasi overflow dengan scroll
+            scrollDirection: Axis.horizontal, // Scroll horizontal
+            child: Column(
+              mainAxisSize: MainAxisSize.min, // Ukuran kolom minimal
+              children: [
+                Text(
+                  'Add from dev:', // Teks informasi
+                  style: TextStyle(fontWeight: FontWeight.bold), // Teks tebal
+                ),
+                Text('Reference: https://course.lilidwianto.me'), // Teks informasi
+                Text('WhatsApp: 384038490'), // Teks informasi
+              ],
+            ),
           ),
         ),
       ),
