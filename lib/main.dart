@@ -90,7 +90,7 @@ class _PanggilApiDeckKartuState extends State<PanggilApiDeckKartu> with SingleTi
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.black.withOpacity(0.4), // Background header transparan dengan opacity 40%
+        backgroundColor: Color.fromARGB(255, 255, 255, 255).withOpacity(0.4), // Background header transparan dengan opacity 40%
         elevation: 0,
         title: Center(
           child: Opacity(
