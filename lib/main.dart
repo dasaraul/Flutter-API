@@ -16,74 +16,186 @@ class TampilKartu extends StatelessWidget {
   }
 }
 
-class PanggilApiDeckKartu extends StatelessWidget {
-  Future<List<dynamic>> GetApiKartu() async {
-    final hasilApiKartu = await http.get(Uri.parse('https://jawanich.my.id/kartu.php'));
+class PanggilApiDeckKartu extends StatefulWidget {
+  @override
+  _PanggilApiDeckKartuState createState() => _PanggilApiDeckKartuState();
+}
+
+class _PanggilApiDeckKartuState extends State<PanggilApiDeckKartu> {
+  late Future<List<dynamic>> grabFutureKartu;
+  List<dynamic> _cards = [];
+
+  // Urutan halaman yang muncul dan tampilkan pertama
+  int halamanUtamaTampil = 1;
+  // Jumlah kartu yang ingin ditampilkan per satu halaman
+  int batasJumlahKartuTampil = 8;
+
+  @override
+  void initState() {
+    super.initState();
+    grabFutureKartu = getApiKartu();
+  }
+
+  // Masukkan fungsi asinkron (operasi yang memerlukan waktu)
+  Future<List<dynamic>> getApiKartu() async {
+    // Buat variabel untuk menampung hasil data menggunakan API
+    final hasilApiKartu = await http.get(
+      Uri.parse('https://deckofcardsapi.com/api/deck/new/draw/?count=12'),
+    );
+
     if (hasilApiKartu.statusCode == 200) {
       final data = json.decode(hasilApiKartu.body);
-      return data['kartu'];
+      return data['cards'];
     } else {
-      throw Exception('Gagal Mengambil Data !');
+      throw Exception('Gagal Mengambil Data!');
     }
+  }
+
+  // Buat fungsi untuk melihat halaman kartu yang berbeda
+  void perbaruiKartuTampil(int page) {
+    setState(() {
+      halamanUtamaTampil = page;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Kumpulan Deck Kartu'),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('UAS Flutter Materi Rest-API'),
+            Text(
+              'Mobile Programming - Universitas Nasional Jakarta',
+              style: TextStyle(fontSize: 14),
+            ),
+          ],
+        ),
       ),
-      // memungkinkan untuk merespon data berdasarkan status dari sebuah Future
-      body: FutureBuilder<List<dynamic>>(
-        // panggil Future yang sudah kita buat
-        future: GetApiKartu(),
-        builder: (context, snapshot) {
-          // untuk menampilkan JSON ke dalam emulator
-
-          // jika proses waiting. Menampilkan animasi loading (lingkaran progress)
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-
-          // jika data error, maka akan memunculkan AsyncSnapshot Error
-          else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-
-          // Jika data yang dikirim null / kosong maka akan memunculkan keterangan di bawah
-          else if (!snapshot.hasData) {
-            return Center(child: Text('Tidak Ada Data yang terkirim'));
-          }
-
-          // Jika semua syarat memenuhi, akan menampilkan data
-          else {
-            return GridView.builder(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
-                childAspectRatio: 0.6,
+      body: Stack(
+        children: [
+          // Background wallpaper
+          Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/bg.png'), // Ensure you have this image in your assets
+                fit: BoxFit.cover,
               ),
-              itemCount: snapshot.data!.length,
-              itemBuilder: (context, index) {
-                final card = snapshot.data![index];
-                return Card(
+            ),
+          ),
+          FutureBuilder<List<dynamic>>(
+            future: grabFutureKartu,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(child: CircularProgressIndicator());
+              } else if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}'));
+              } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return Center(child: Text('Tidak Ada Data yang terkirim'));
+              } else {
+                _cards = snapshot.data!;
+                int startIndex =
+                    (halamanUtamaTampil - 1) * batasJumlahKartuTampil;
+                int endIndex = startIndex + batasJumlahKartuTampil;
+                List<dynamic> currentPageCards = _cards.sublist(
+                    startIndex,
+                    endIndex > _cards.length ? _cards.length : endIndex);
+                return Padding(
+                  padding: const EdgeInsets.all(20.0),
                   child: Column(
                     children: [
-                      Container(
-                        color: Colors.blue[100],
-                        child: Image.network(
-                          card['image'],
+                      Expanded(
+                        child: GridView.builder(
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 4,
+                            childAspectRatio: 0.7,
+                            crossAxisSpacing: 20.0,
+                            mainAxisSpacing: 20.0,
+                          ),
+                          itemCount: currentPageCards.length,
+                          itemBuilder: (context, index) {
+                            final card = currentPageCards[index];
+                            return Card(
+                              elevation: 2.0,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.blue[100],
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Image.network(
+                                      card['image'],
+                                      height: 128,
+                                      width: 128,
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      '${card['value']} of ${card['suit']}',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    SizedBox(height: 8),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
-                      Text(
-                        '${card['value']} of ${card['suit']}',
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ElevatedButton(
+                            onPressed: halamanUtamaTampil > 1
+                                ? () {
+                                    perbaruiKartuTampil(
+                                        halamanUtamaTampil - 1);
+                                  }
+                                : null,
+                            child: Text('Previous'),
+                          ),
+                          SizedBox(width: 10),
+                          ElevatedButton(
+                            onPressed: endIndex < _cards.length
+                                ? () {
+                                    perbaruiKartuTampil(
+                                        halamanUtamaTampil + 1);
+                                  }
+                                : null,
+                            child: Text('Next'),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 );
-              },
-            );
-          }
-        },
+              }
+            },
+          ),
+        ],
+      ),
+      bottomNavigationBar: BottomAppBar(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Add from dev:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text('Reference: https://course.lilidwianto.me'),
+              Text('WhatsApp: 384038490'),
+            ],
+          ),
+        ),
       ),
     );
   }
