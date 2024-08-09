@@ -147,8 +147,10 @@ class _PanggilApiDeckKartuState extends State<PanggilApiDeckKartu> with SingleTi
                       TextField(
                         controller: _searchController,
                         decoration: InputDecoration(
-                          labelText: 'Search Card', // Placeholder search bar
+                          labelText: 'Cari Kartu', // Placeholder search bar
                           prefixIcon: Icon(Icons.search),
+                          fillColor: Colors.white, // Set warna background search bar jadi putih
+                          filled: true, // Biar warna putihnya muncul
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
