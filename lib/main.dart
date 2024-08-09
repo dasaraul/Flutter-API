@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
+import 'package:video_player/video_player.dart';
 import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() {
   runApp(TampilKartu());
@@ -21,83 +22,116 @@ class PanggilApiDeckKartu extends StatefulWidget {
   _PanggilApiDeckKartuState createState() => _PanggilApiDeckKartuState();
 }
 
-class _PanggilApiDeckKartuState extends State<PanggilApiDeckKartu> {
+class _PanggilApiDeckKartuState extends State<PanggilApiDeckKartu> with SingleTickerProviderStateMixin {
   late Future<List<dynamic>> grabFutureKartu;
   List<dynamic> _cards = [];
-
-  // Urutan halaman yang muncul dan tampilkan pertama
   int halamanUtamaTampil = 1;
-  // Jumlah kartu yang ingin ditampilkan per satu halaman
   int batasJumlahKartuTampil = 8;
+
+  late VideoPlayerController _controller;
+  late AnimationController _animasiController;
+  late Animation<double> _animasi;
 
   @override
   void initState() {
     super.initState();
-    grabFutureKartu = getApiKartu(); // Panggil API saat initState
+    grabFutureKartu = getApiKartu();
+
+    // Inisialisasi video background
+    _controller = VideoPlayerController.asset('assets/background.mp4')
+      ..initialize().then((_) {
+        _controller.setLooping(true);
+        _controller.play();
+        setState(() {});
+      });
+
+    // Inisialisasi animasi transisi halaman
+    _animasiController = AnimationController(
+      duration: Duration(milliseconds: 500),
+      vsync: this,
+    );
+    _animasi = CurvedAnimation(parent: _animasiController, curve: Curves.easeInOut);
   }
 
-  // Fungsi asinkron buat ambil data dari API
   Future<List<dynamic>> getApiKartu() async {
-    // Panggil API pakai http.get
     final hasilApiKartu = await http.get(
       Uri.parse('https://deckofcardsapi.com/api/deck/new/draw/?count=30'),
     );
 
     if (hasilApiKartu.statusCode == 200) {
       final data = json.decode(hasilApiKartu.body);
-      return data['cards']; // Balikin list kartu dari API
+      return data['cards'];
     } else {
       throw Exception('Gagal Mengambil Data!');
     }
   }
 
-  // Fungsi buat update halaman yang ditampilkan
   void perbaruiKartuTampil(int page) {
     setState(() {
-      halamanUtamaTampil = page; // Ubah state halaman
+      halamanUtamaTampil = page;
     });
+    _animasiController.forward(from: 0.0); 
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _animasiController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.transparent, // AppBar transparan
-        elevation: 0, // Hilangin bayangan AppBar
-        title: Opacity(
-          opacity: 0.8, // Opacity title AppBar
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('UAS Flutter Materi Rest-API'),
-              Text(
-                'Mobile Programming - Universitas Nasional Jakarta',
-                style: TextStyle(fontSize: 14),
-              ),
-            ],
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Center(
+          child: Opacity(
+            opacity: 0.8,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text('UAS Flutter Materi Rest-API'),
+                Text(
+                  'Mobile Programming - Universitas Nasional Jakarta',
+                  style: TextStyle(fontSize: 14),
+                ),
+              ],
+            ),
           ),
         ),
       ),
       body: Stack(
         children: [
-          // Background wallpaper
-          Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/bg.png'), // Pastikan ada gambar ini di assets
-                fit: BoxFit.cover,
-              ),
-            ),
+          // Video background positioned to the back
+          Positioned.fill(
+            child: _controller.value.isInitialized
+                ? FittedBox(
+                    fit: BoxFit.cover,
+                    child: SizedBox(
+                      width: _controller.value.size.width,
+                      height: _controller.value.size.height,
+                      child: VideoPlayer(_controller),
+                    ),
+                  )
+                : Container(color: Colors.black),
           ),
+          // Konten Kartu di atas video
           FutureBuilder<List<dynamic>>(
-            future: grabFutureKartu, // Data yang ditunggu dari API
+            future: grabFutureKartu,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CircularProgressIndicator()); // Loading
+                return Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+                    strokeWidth: 6.0,
+                  ),
+                );
               } else if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}')); // Kalau error
+                return Center(child: Text('Error: ${snapshot.error}'));
               } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return Center(child: Text('Tidak Ada Data yang terkirim')); // Kalau datanya kosong
+                return Center(child: Text('Tidak Ada Data yang terkirim'));
               } else {
                 _cards = snapshot.data!;
                 int startIndex =
@@ -106,114 +140,90 @@ class _PanggilApiDeckKartuState extends State<PanggilApiDeckKartu> {
                 List<dynamic> currentPageCards = _cards.sublist(
                     startIndex,
                     endIndex > _cards.length ? _cards.length : endIndex);
-                return Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: GridView.builder(
-                          // Menggunakan GridView.builder biar fleksibel
-                          physics: BouncingScrollPhysics(), // Buat scrolling smooth
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 4, // Membagi menjadi 4 kolom
-                            childAspectRatio: 0.65, // Mengatur rasio agar kartu lebih panjang
-                            crossAxisSpacing: 20.0, // Jarak antar kartu
-                            mainAxisSpacing: 20.0, // Jarak antara baris kartu
-                          ),
-                          itemCount: currentPageCards.length,
-                          itemBuilder: (context, index) {
-                            final card = currentPageCards[index];
-                            return Card(
-                              elevation: 2.0, // Ketinggian bayangan kartu
-                              color: Colors.transparent, // Background kartu transparan
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.withOpacity(0.3), // Warna semi-transparan
-                                  borderRadius: BorderRadius.circular(10), // Sudut membulat
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Image.network(
-                                      card['image'], // Tampilkan gambar kartu
-                                      height: 100, // Tinggi gambar
-                                      width: 100, // Lebar gambar
-                                    ),
-                                    SizedBox(height: 8), // Spasi antara gambar dan teks
-                                    Text(
-                                      '${card['value']} of ${card['suit']}', // Nama kartu
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 14, // Ukuran teks
-                                        fontWeight: FontWeight.bold, // Teks tebal
+
+                return FadeTransition(
+                  opacity: _animasi,
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: GridView.builder(
+                            physics: BouncingScrollPhysics(),
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 4,
+                              childAspectRatio: 0.7,
+                              crossAxisSpacing: 20.0,
+                              mainAxisSpacing: 20.0,
+                            ),
+                            itemCount: currentPageCards.length,
+                            itemBuilder: (context, index) {
+                              final card = currentPageCards[index];
+                              return Card(
+                                elevation: 2.0,
+                                color: Colors.transparent,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.withOpacity(0.3),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Image.network(
+                                        card['image'],
+                                        height: 128,
+                                        width: 128,
                                       ),
-                                    ),
-                                    SizedBox(height: 8), // Spasi bawah
-                                  ],
+                                      SizedBox(height: 8),
+                                      Text(
+                                        '${card['value']} of ${card['suit']}',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      SizedBox(height: 8),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
+                              );
+                            },
+                          ),
                         ),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center, // Pusatkan tombol
-                        children: [
-                          Opacity(
-                            opacity: 0.8, // Opacity untuk tombol "Previous"
-                            child: ElevatedButton(
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            ElevatedButton(
                               onPressed: halamanUtamaTampil > 1
                                   ? () {
-                                      perbaruiKartuTampil(
-                                          halamanUtamaTampil - 1); // Pindah ke halaman sebelumnya
+                                      perbaruiKartuTampil(halamanUtamaTampil - 1);
                                     }
                                   : null,
-                              child: Text('Previous'), // Teks tombol
+                              child: Text('Previous'),
                             ),
-                          ),
-                          SizedBox(width: 10), // Spasi antara tombol
-                          Opacity(
-                            opacity: 0.8, // Opacity untuk tombol "Next"
-                            child: ElevatedButton(
+                            SizedBox(width: 10),
+                            ElevatedButton(
                               onPressed: endIndex < _cards.length
                                   ? () {
-                                      perbaruiKartuTampil(
-                                          halamanUtamaTampil + 1); // Pindah ke halaman berikutnya
+                                      perbaruiKartuTampil(halamanUtamaTampil + 1);
                                     }
                                   : null,
-                              child: Text('Next'), // Teks tombol
+                              child: Text('Next'),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 );
               }
             },
           ),
         ],
-      ),
-      bottomNavigationBar: BottomAppBar(
-        color: Colors.transparent, // BottomAppBar transparan
-        child: Container(
-          color: Colors.black.withOpacity(0.5), // Warna semi-transparan
-          padding: const EdgeInsets.all(8.0), // Padding kontainer
-          child: SingleChildScrollView( // Mengatasi overflow dengan scroll
-            scrollDirection: Axis.horizontal, // Scroll horizontal
-            child: Column(
-              mainAxisSize: MainAxisSize.min, // Ukuran kolom minimal
-              children: [
-                Text(
-                  'Add from dev:', // Teks informasi
-                  style: TextStyle(fontWeight: FontWeight.bold), // Teks tebal
-                ),
-                Text('Reference: https://course.lilidwianto.me'), // Teks informasi
-                Text('WhatsApp: 384038490'), // Teks informasi
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
